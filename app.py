@@ -7,8 +7,6 @@ from pprint import pprint
 
 # notion = Client(auth='secret_T9UVf3PrsEmJ6QeMnGMBr30RTZ5RTUon2ayqMygjM7a')
 
-# # # list_users_response = notion.users.list()
-# # # print(list_users_response)
 
 # my_page = notion.databases.query(
 #   **{
@@ -52,8 +50,9 @@ properties = [
   'Fri',
 ]
 
-find_status = 'DONE'
+day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday','Sunday']
 
+find_status = 'DONE'
 
 due_date = '17:00'
 
@@ -66,28 +65,41 @@ with open('data.json', 'r') as f:
     datetime.now().day,
   )
 
+  day_name = day_names[date_today.weekday()]
 
   for page in my_page['results']:
     properties = page['properties']
 
-    # print(page, ' <<<< ')
-    # check if set date exists and handle the value
     if properties['Set date']['date']:
-      # print(properties['Set date']['date'])
       if 'start' in properties['Set date']['date']:
-        set_date_property = list(map(int, properties['Set date']['date']['start'].split('-')))
-        set_date = datetime(set_date_property[0], set_date_property[1], set_date_property[2])
+        set_date_start = list(map(int, properties['Set date']['date']['start'].split('-')))
+        set_date = datetime(*set_date_start)
+        due_date_property = list(map(int, page['properties']['Due Date']['date']['start'].split('-')))
+        due_date = datetime(*due_date_property)
 
+        # print(set_date, due_date)
 
         # handle set date property
         if set_date > date_today:
           continue
 
         elif set_date < date_today:
-          due_date = properties['Priority']['select']['name']
-          print(due_date, ' <<< due_date')
-          print(2)
+          # get periodicity
+          periodicity_property = properties['Periodicity']['multi_select']
+          periodicity = []
+
+          for i in periodicity_property:
+            periodicity.append(i['name'])
+
+          print(periodicity)
+
+
+
+          # print(2)
+          # print(due_date, ' <<< due_date')
 
         elif set_date == date_today:
-          print(3)
+          # set the task status as "To Do"
+          # print(3)
+          continue
 
