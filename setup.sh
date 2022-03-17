@@ -7,11 +7,10 @@ echo "Install packages..."
 pip install -r requirements.txt
 
 echo "[+] Create run.sh"
-echo "
-#!/bin/bash
+echo "#!/bin/bash
 
 while read line; do
-  export $line
+  export \$line
 done < ${BASE_DIR}/.env
 
 python3 ${BASE_DIR}/app.py" > run.sh
