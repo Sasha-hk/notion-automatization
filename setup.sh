@@ -18,4 +18,4 @@ python3 ${BASE_DIR}/app.py" > run.sh
 chmod +x run.sh
 
 echo "[+] Done!"
-echo " -  Now set up cron, or run app.py"
+echo "[!] Create .env file"
