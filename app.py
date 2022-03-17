@@ -1,9 +1,8 @@
-import os
 import json
+import os
+import requests
 from datetime import datetime, timedelta
-from calendar import monthrange
 from notion_client import Client
-from pprint import pprint
 from utils import load_database
 
 
@@ -14,104 +13,11 @@ notion = Client(auth=os.getenv('TOKEN'))
 # with open('data.json', 'w') as f:
 #   json.dump(my_page, f, indent=2)
 
-day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday','Sunday']
-
-class GenDueDate:
-  date = datetime.now()
-  days_range = monthrange(date.year, date.month)
-
-  weekdays = ['Daily', 'On demand', 'Mo', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Free']
-  periodicity_times = ['1t', '2t', '3t', '4t', '5t', '6t']
-  periodicity_range = ['m', '2m', '3m', 'w', '2w', '3w']
-  periodicity_range_patters = {
-    'm': days_range[1],
-    'w': 7,
-  }
-
-  def __init__(self, periodicity_property):
-    self.periodicity_source = periodicity_property
-    self.periodicity_props = []
-
-    # output data
-    self.due_date = None
-    self.set_date = None
-
-    for i in periodicity_property:
-      self.periodicity_props.append(i['name'])
-
-    self.parse_periodicity()
-
-    print(self.periodicity)
-
-  def parse_periodicity(self):
-    self.periodicity = {
-      'days': [],
-      'times': [],
-      'range': None,
-    }
-
-    # parse periodicity range and times
-    for i in self.periodicity_props:
-      if i in self.weekdays:
-        if i != 'Daily':
-          self.periodicity['days'].append(self.weekdays.index(i))
-
-        else:
-          self.periodicity['days'].append(i)
-          break
-
-      else:
-        periodicity_and_range = i.split('/')
-
-        if len(periodicity_and_range) > 1:
-          if periodicity_and_range in self.periodicity_range:
-            self.periodicity['range'] = periodicity_and_range[0]
-            self.periodicity['times'].append(periodicity_and_range[1][0])
-
-          else:
-            self.periodicity['range'] = periodicity_and_range[1]
-            self.periodicity['times'].append(periodicity_and_range[0][0])
-
-        else:
-          self.periodicity['days'] = periodicity_and_range[0]
-
-      self.periodicity['days'].sort()
-
-  def generate_day(self, count, ):
-    weekday_number = self.weekdays.index(self.date.weekday)
-
-    for periodicity_day in self.periodicity['days']:
-      if (periodicity_day > weekday_number):
-        pass
-
-  def generate_due_date(self):
-    if len(self.periodicity['days']) != 0:
-      weekday_number = self.weekdays.index(self.date.weekday)
-
-      if self.periodicity['times'] == 1:
-        pass
-
-      # for periodicity_day in self.periodicity['days']:
-      #   if (periodicity_day > weekday_number):
+days_periodicity = ['Mo', 'Tue', 'Wed', 'Thu', 'Fri']
+special_days_property = ['Daily', 'On demand']
+periodicity_ranges = ['1t/w', '2t/w', '3t/w', '1t/2w', '1t/m', '2t/m', '2t/m', '1t/2m', '1t/3m']
 
 
-    # else:
-    #   pass
-
-  def generate_set_date(self):
-    if 'Daily' in self.periodicity['days']:
-      self.set_date = self.due_date
-
-    else:
-      if len(self.periodicity['times']) == 0:
-        for i in self.periodicity['range']:
-          if i == 'm' or i == 'w':
-            self.set_date = datetime(self.due_date.year, self.due_date.month, self.due_date.day - 7)
-
-      else:
-        for i in self.periodicity['range']:
-          if i == 'm' or i == 'w':
-            self.set_date = datetime(self.due_date.year, self.due_date.month, self.due_date.day - 14)
 
 with open('data.json', 'r') as f:
   my_page = json.load(f)
@@ -122,7 +28,7 @@ with open('data.json', 'r') as f:
     datetime.now().day,
   )
 
-  day_name = day_names[date_today.weekday()]
+  day = date_today.weekday()
 
   for page in my_page['results']:
     properties = page['properties']
@@ -133,18 +39,70 @@ with open('data.json', 'r') as f:
         set_date = datetime(*set_date_start)
         due_date_property = list(map(int, page['properties']['Due Date']['date']['start'].split('-')))
         due_date = datetime(*due_date_property)
+        result_set_date = None
+        result_due_date = None
 
         # handle set date property
         if set_date > date_today:
           continue
 
         elif set_date < date_today:
-          # get periodicity
-          x = GenDueDate(properties['Periodicity']['multi_select'])
+          due_date_property = list(map(int, properties['Due Date']['date']['start'].split('-')))
+          due_date = datetime(*due_date_property)
+          set_date_property = list(map(int, properties['Set date']['date']['start'].split('-')))
+          set_date = datetime(*set_date_property)
+          periodicity_property = properties['Periodicity']['multi_select']
+          periodicity = [i['name'] for i in periodicity_property]
+          print('==========================')
 
-          # print(due_date, ' <<< due_date')
+          # set due date
+          if 'Daily' in periodicity:
+            result_due_date = date_today
+
+          else:
+            next_date = None
+
+            for i in periodicity:
+              if i in days_periodicity:
+                if due_date.weekday() < days_periodicity.index(i):
+                  next_date = due_date.day + (days_periodicity.index(i) - due_date.weekday())
+
+            if not next_date:
+              for i in periodicity:
+                if i in days_periodicity:
+                  next_date = due_date.day + (6 - due_date.weekday()) + days_periodicity.index(i)
+                  break
+
+            if next_date:
+              result_due_date = datetime(due_date.year, due_date.month, next_date)
+
+
+          # set set date
+          if result_due_date:
+            for i in periodicity:
+              if i == 'Daily':
+                result_set_date = result_due_date
+                break
+
+              else:
+                if i in periodicity_ranges:
+                  range_parts = i.split('/')
+
+                  if range_parts[1] == 'w':
+                    result_set_date = datetime(result_due_date.year, result_due_date.month, result_due_date.day - 1)
+                    break
+
+                  elif range_parts[1] == 'm':
+                    result_set_date = datetime(result_due_date.year, result_due_date.month, result_due_date.day - 7)
+                    break
+
+                  elif range_parts[1] == '2w' or range_parts[1] == '3m':
+                    result_set_date = datetime(result_due_date.year, result_due_date.month, result_due_date.day - 14)
+                    break
+
+          print(result_due_date, result_set_date)
+
 
         elif set_date == date_today:
-          # set the task status as "To Do"
-          # print(3)
+          # set status as To Do
           continue
