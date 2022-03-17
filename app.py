@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 import datetime
 from notion_client import Client
 from utils import load_database, update_page
@@ -10,16 +9,9 @@ notion = Client(auth=os.getenv('TOKEN'))
 
 my_page = load_database(notion)
 
-# with open('data.json', 'w') as f:
-#   json.dump(my_page, f, indent=2)
-
 days_periodicity = ['Mo', 'Tue', 'Wed', 'Thu', 'Fri']
 special_days_property = ['Daily', 'On demand']
 periodicity_ranges = ['1t/w', '2t/w', '3t/w', '1t/2w', '1t/m', '2t/m', '2t/m', '1t/2m', '1t/3m']
-
-# with open('data.json', 'r') as f:
-  # my_page = json.load(f)
-
 
 date_today = datetime.datetime(
   datetime.datetime.now().year,
@@ -43,7 +35,6 @@ for page in my_page['results']:
 
       # handle set date property
       if set_date > date_today:
-        print('Skip')
         continue
 
       elif set_date < date_today:
@@ -97,8 +88,7 @@ for page in my_page['results']:
                   break
 
         if result_due_date and result_set_date:
-          print('  set:', result_due_date, result_set_date, set_date)
-          r = update_page(notion, page['id'], {
+          update_page(page['id'], {
             'Due Date': {
               'date': {
                 'start': result_due_date.strftime('%Y-%m-%d'),
@@ -110,12 +100,9 @@ for page in my_page['results']:
               },
             },
           })
-          print(r.status_code)
-          print(r.text)
 
       elif set_date == date_today:
-        print(page['id'])
-        r = update_page(notion, page['id'], {
+        update_page(page['id'], {
           'Status': {
             'select': {
               'name': 'TO DO'

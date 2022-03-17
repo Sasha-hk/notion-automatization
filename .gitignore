@@ -3,3 +3,4 @@ env/
 data.json
 main.py
 .env
+run.sh
