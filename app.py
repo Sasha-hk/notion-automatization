@@ -4,22 +4,12 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 from notion_client import Client
 from pprint import pprint
+from utils import load_database
 
 
-# notion = Client(auth='secret_T9UVf3PrsEmJ6QeMnGMBr30RTZ5RTUon2ayqMygjM7a')
+notion = Client(auth='secret_T9UVf3PrsEmJ6QeMnGMBr30RTZ5RTUon2ayqMygjM7a')
 
-
-# my_page = notion.databases.query(
-#   **{
-#     "database_id": '95e949f598ae4c9d9063bdb7a27438f9',
-#     "filter": {
-#       "property": "Status",
-#       "select": {
-#         "equals": "DONE"
-#       }
-#     }
-#   }
-# )
+# my_page = load_database(notion)
 
 # with open('data.json', 'w') as f:
 #   json.dump(my_page, f, indent=2)
@@ -43,13 +33,12 @@ class GenDueDate:
     self.periodicity_props = []
 
     # output data
-    self.due_date
-    self.set_date
+    self.due_date = None
+    self.set_date = None
 
     for i in periodicity_property:
       self.periodicity_props.append(i['name'])
 
-    # print(self.periodicity_props)
     self.parse_periodicity()
 
     print(self.periodicity)
@@ -64,7 +53,12 @@ class GenDueDate:
     # parse periodicity range and times
     for i in self.periodicity_props:
       if i in self.weekdays:
-        self.periodicity['days'].append(self.weekdays.index(i))
+        if i != 'Daily':
+          self.periodicity['days'].append(self.weekdays.index(i))
+
+        else:
+          self.periodicity['days'].append(i)
+          break
 
       else:
         periodicity_and_range = i.split('/')
@@ -81,8 +75,28 @@ class GenDueDate:
         else:
           self.periodicity['days'] = periodicity_and_range[0]
 
+      self.periodicity['days'].sort()
+
+  def generate_day(self, count, ):
+    weekday_number = self.weekdays.index(self.date.weekday)
+
+    for periodicity_day in self.periodicity['days']:
+      if (periodicity_day > weekday_number):
+        pass
+
   def generate_due_date(self):
-    pass
+    if len(self.periodicity['days']) != 0:
+      weekday_number = self.weekdays.index(self.date.weekday)
+
+      if self.periodicity['times'] == 1:
+        pass
+
+      # for periodicity_day in self.periodicity['days']:
+      #   if (periodicity_day > weekday_number):
+
+
+    # else:
+    #   pass
 
   def generate_set_date(self):
     if 'Daily' in self.periodicity['days']:
@@ -98,9 +112,6 @@ class GenDueDate:
         for i in self.periodicity['range']:
           if i == 'm' or i == 'w':
             self.set_date = datetime(self.due_date.year, self.due_date.month, self.due_date.day - 14)
-
-
-
 
 with open('data.json', 'r') as f:
   my_page = json.load(f)
@@ -131,11 +142,9 @@ with open('data.json', 'r') as f:
           # get periodicity
           x = GenDueDate(properties['Periodicity']['multi_select'])
 
-          # print(2)
           # print(due_date, ' <<< due_date')
 
         elif set_date == date_today:
           # set the task status as "To Do"
           # print(3)
           continue
-
