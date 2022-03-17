@@ -7,7 +7,7 @@ from pprint import pprint
 from utils import load_database
 
 
-notion = Client(auth='secret_T9UVf3PrsEmJ6QeMnGMBr30RTZ5RTUon2ayqMygjM7a')
+notion = Client(auth=os.getenv('TOKEN'))
 
 # my_page = load_database(notion)
 
