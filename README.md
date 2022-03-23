@@ -1,4 +1,4 @@
-# Notion automation
+# 📔 Notion automation
 
 This is python automation script for Notion. The script runs on my server every minute.
 
